@@ -35,14 +35,16 @@ _FAILURE_LABELS = {
 
 _FAILURE_COLUMNS = list(_FAILURE_LABELS.keys())
 _FAILURE_LABEL_ARRAY = np.array(list(_FAILURE_LABELS.values()))
-
 _BINARY_COLUMNS = ["failure_any", *_FAILURE_COLUMNS]
 
 _RPM_TO_RAD_PER_S = 2 * np.pi / 60
+_PRODUCT_TYPE_DTYPE = pd.CategoricalDtype(categories=["L", "M", "H"], ordered=True)
 
 
 def _validate_raw_schema(df: pd.DataFrame) -> None:
-    """Fail fast if the source CSV lacks required telemetry columns."""
+    """Fail fast if the source CSV is empty or lacks required telemetry columns."""
+    if df.empty:
+        raise ValueError("Source CSV contains no data rows.")
     missing = set(_RENAME_MAPPING.keys()) - set(df.columns)
     if missing:
         raise ValueError(f"Source CSV missing required column(s): {sorted(missing)}")
@@ -72,16 +74,13 @@ def load_data(filepath: str | Path = DATA_PATH) -> pd.DataFrame:
     _validate_raw_schema(df)
     df = df.rename(columns=_RENAME_MAPPING)
 
-    # Compact dtypes
     df[_BINARY_COLUMNS] = df[_BINARY_COLUMNS].astype(bool)
-    df["product_type"] = df["product_type"].astype("category")
+    df["product_type"] = df["product_type"].astype(_PRODUCT_TYPE_DTYPE)
 
-    # Physical indicators
-    df["temp_diff_k"] = df["process_temp_k"] - df["air_temp_k"]
+    df["temp_diff_k"] = (df["process_temp_k"] - df["air_temp_k"]).round(2)
     rotational_speed_rad_s = df["rotational_speed_rpm"] * _RPM_TO_RAD_PER_S
-    df["mechanical_power_w"] = df["torque_nm"] * rotational_speed_rad_s
+    df["mechanical_power_w"] = (df["torque_nm"] * rotational_speed_rad_s).round(2)
 
-    # Qualitative operational state
     df["operational_status"] = _build_operational_status(df)
 
     return df
