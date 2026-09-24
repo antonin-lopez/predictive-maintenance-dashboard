@@ -33,11 +33,6 @@ _FAILURE_LABELS = {
     "failure_random": "Random failure (RNF)",
 }
 
-_FAILURE_COLUMNS = list(_FAILURE_LABELS.keys())
-_FAILURE_LABEL_ARRAY = np.array(list(_FAILURE_LABELS.values()))
-_BINARY_COLUMNS = ["failure_any", *_FAILURE_COLUMNS]
-
-_RPM_TO_RAD_PER_S = 2 * np.pi / 60
 _PRODUCT_TYPE_DTYPE = pd.CategoricalDtype(categories=["L", "M", "H"], ordered=True)
 
 
@@ -50,21 +45,13 @@ def _validate_raw_schema(df: pd.DataFrame) -> None:
         raise ValueError(f"Source CSV missing required column(s): {sorted(missing)}")
 
 
-def _build_operational_status(df: pd.DataFrame) -> pd.Series:
-    """Derive operational status labels from failure flags using NumPy indexing."""
-    failure_mask = df[_FAILURE_COLUMNS].to_numpy(dtype=bool)
-    has_specific = failure_mask.any(axis=1)
-    is_failure = has_specific | df["failure_any"].to_numpy(dtype=bool)
+def _get_operational_status(row: pd.Series) -> str:
+    """Map binary failure flags to human-readable labels."""
+    if not row["failure_any"]:
+        return "Normal operation"
 
-    result = np.full(len(df), "Normal operation", dtype=object)
-    for idx in np.flatnonzero(is_failure):
-        result[idx] = (
-            ", ".join(_FAILURE_LABEL_ARRAY[failure_mask[idx]])
-            if has_specific[idx]
-            else "Unknown failure"
-        )
-
-    return pd.Series(result, index=df.index)
+    causes = [label for col, label in _FAILURE_LABELS.items() if row[col]]
+    return ", ".join(causes) if causes else "Unknown failure"
 
 
 @st.cache_data
@@ -74,13 +61,17 @@ def load_data(filepath: str | Path = DATA_PATH) -> pd.DataFrame:
     _validate_raw_schema(df)
     df = df.rename(columns=_RENAME_MAPPING)
 
-    df[_BINARY_COLUMNS] = df[_BINARY_COLUMNS].astype(bool)
+    # Types optimization
+    failure_cols = ["failure_any", *_FAILURE_LABELS.keys()]
+    df[failure_cols] = df[failure_cols].astype(bool)
     df["product_type"] = df["product_type"].astype(_PRODUCT_TYPE_DTYPE)
 
+    # Physical indicators
     df["temp_diff_k"] = (df["process_temp_k"] - df["air_temp_k"]).round(2)
-    rotational_speed_rad_s = df["rotational_speed_rpm"] * _RPM_TO_RAD_PER_S
-    df["mechanical_power_w"] = (df["torque_nm"] * rotational_speed_rad_s).round(2)
+    omega_rad_s = df["rotational_speed_rpm"] * (2 * np.pi / 60)
+    df["mechanical_power_w"] = (df["torque_nm"] * omega_rad_s).round(2)
 
-    df["operational_status"] = _build_operational_status(df)
+    # Qualitative operational state
+    df["operational_status"] = df.apply(_get_operational_status, axis=1)
 
     return df
