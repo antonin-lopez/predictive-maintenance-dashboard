@@ -16,15 +16,10 @@ st.write(
     It reproduces realistic sensor readings from an industrial milling machine, along with the
     failures that occurred during operation.
 
-    The goal is to predict, from live sensor readings, whether the machine is heading towards a
-    failure — and if so, which failure mode is responsible.
+    The goal is to predict, from live sensor readings, whether the machine is heading towards a 
+    failure and if so, which failure mode is responsible.
     """
 )
-
-col1, col2, col3 = st.columns(3)
-col1.metric("Records", f"{len(df):,}")
-col2.metric("Sensor features", "5")
-col3.metric("Failure rate", f"{df['failure_any'].mean() * 100:.1f}%")
 
 st.subheader("A look at the raw data")
 st.dataframe(df.head(10))
