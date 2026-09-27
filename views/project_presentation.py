@@ -9,6 +9,11 @@ df = load_data()
 
 st.title("Project Presentation")
 
+st.info(
+    "A short hands-on project to get familiar with Streamlit, explore its UI patterns, "
+    "and test what works (and what doesn't) when building interactive data apps."
+)
+
 st.write(
     """
     This project works with the **AI4I 2020 Predictive Maintenance Dataset**, a synthetic dataset
@@ -42,9 +47,7 @@ st.write(
 )
 
 st.subheader("Failure modes")
-st.write(
-    "A machine failure is triggered by one of these five physical mechanisms:"
-)
+st.write("A machine failure is triggered by one of these five physical mechanisms:")
 
 failure_taxonomy = pd.DataFrame(
     {
