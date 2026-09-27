@@ -13,12 +13,12 @@ df = load_data()
 
 total_machines = len(df)
 total_failures = int(df["failure_any"].sum())
-failure_rate = (total_failures / total_machines) * 100
+failure_rate = total_failures / total_machines
 
 col1, col2, col3 = st.columns(3)
 col1.metric("Fleet size", f"{total_machines:,}")
 col2.metric("Failures recorded", f"{total_failures:,}")
-col3.metric("Overall failure rate", f"{failure_rate:.2f}%")
+col3.metric("Overall failure rate", f"{failure_rate:.2%}")
 
 st.divider()
 
@@ -30,14 +30,25 @@ st.write(
     "one variant is more failure-prone than the others."
 )
 
-failure_by_grade = df.groupby("product_type", observed=True)["failure_any"].agg(
+failure_by_grade = df.groupby("product_type")["failure_any"].agg(
     machines="count", failures="sum"
 )
 failure_by_grade["failure_rate_pct"] = (
     failure_by_grade["failures"] / failure_by_grade["machines"] * 100
-).round(2)
+)
 
-st.dataframe(failure_by_grade)
+st.dataframe(
+    failure_by_grade.reset_index(),
+    column_config={
+        "product_type": "Product type",
+        "machines": st.column_config.NumberColumn("Machines", format="%d"),
+        "failures": st.column_config.NumberColumn("Failures", format="%d"),
+        "failure_rate_pct": st.column_config.NumberColumn(
+            "Failure rate", format="%.2f%%"
+        ),
+    },
+    hide_index=True,
+)
 
 st.divider()
 
@@ -67,7 +78,7 @@ fig = px.bar(
     x=mode_counts.values,
     y=mode_counts.index,
     orientation="h",
-    labels={"x": "Occurrences", "y": "Failure Mode"},
+    labels={"x": "Occurrences", "y": "Failure"},
 )
 
 st.plotly_chart(fig)
@@ -81,4 +92,59 @@ st.write(
 )
 
 flagged_machines = df[df["failure_any"]].sort_values("tool_wear_min", ascending=False)
-st.dataframe(flagged_machines)
+
+st.dataframe(
+    flagged_machines,
+    column_config={
+        "product_id": "Product ID",
+        "product_type": "Type",
+        "air_temp_k": st.column_config.NumberColumn(
+            "Air Temp",
+            help="ambient temperature around the machine",
+            format="%.1f K",
+        ),
+        "process_temp_k": st.column_config.NumberColumn(
+            "Process Temp",
+            help="temperature of the milling process itself",
+            format="%.1f K",
+        ),
+        "rotational_speed_rpm": st.column_config.NumberColumn(
+            "Speed",
+            help="spindle rotation speed",
+            format="%d rpm",
+        ),
+        "torque_nm": st.column_config.NumberColumn(
+            "Torque",
+            help="torque applied during milling",
+            format="%.1f Nm",
+        ),
+        "tool_wear_min": st.column_config.NumberColumn(
+            "Tool Wear",
+            help="cumulative time the current tool has been in use",
+            format="%d min",
+        ),
+        "failure_any": st.column_config.CheckboxColumn("Failed?"),
+        "failure_tool_wear": st.column_config.CheckboxColumn(
+            "TWF", help="Tool Wear Failure"
+        ),
+        "failure_heat_dissipation": st.column_config.CheckboxColumn(
+            "HDF", help="Heat Dissipation Failure"
+        ),
+        "failure_power": st.column_config.CheckboxColumn("PWF", help="Power Failure"),
+        "failure_overstrain": st.column_config.CheckboxColumn(
+            "OSF", help="Overstrain Failure"
+        ),
+        "failure_random": st.column_config.CheckboxColumn("RNF", help="Random Failure"),
+        "temp_diff_k": st.column_config.NumberColumn(
+            "Temp Diff",
+            help="process minus air temperature",
+            format="%.1f K",
+        ),
+        "mechanical_power_w": st.column_config.NumberColumn(
+            "Mechanical Power",
+            help="torque x rotational speed",
+            format="%.0f W",
+        ),
+    },
+    hide_index=True,
+)

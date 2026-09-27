@@ -7,6 +7,7 @@ from src.data_loader import load_data
 
 df = load_data()
 
+
 st.title("Project Presentation")
 
 st.write(
@@ -36,7 +37,7 @@ st.write(
 
     Two columns are engineered from the raw sensors, matching the definitions used for HDF and PWF:
     - **temp_diff_k** — process minus air temperature
-    - **mechanical_power_w** — torque * rotational speed (converted to rad/s)
+    - **mechanical_power_w** — torque x rotational speed (converted to rad/s)
     """
 )
 
@@ -47,33 +48,23 @@ st.write(
 )
 
 failure_taxonomy = pd.DataFrame(
-    [
-        {
-            "Code": "TWF",
-            "Failure": "Tool Wear Failure",
-            "Cause": "Tool degrades past a critical wear threshold (~200-240 min).",
-        },
-        {
-            "Code": "HDF",
-            "Failure": "Heat Dissipation Failure",
-            "Cause": "Air/process temperature difference too small (< 8.6 K) at low speed.",
-        },
-        {
-            "Code": "PWF",
-            "Failure": "Power Failure",
-            "Cause": "Mechanical power (torque * speed) outside the 3,500-9,000 W operating range.",
-        },
-        {
-            "Code": "OSF",
-            "Failure": "Overstrain Failure",
-            "Cause": "Combination of high torque and tool wear causes fatigue.",
-        },
-        {
-            "Code": "RNF",
-            "Failure": "Random Failure",
-            "Cause": "Rare failure with no identifiable sensor signature (~0.1% of records).",
-        },
-    ]
+    {
+        "Code": ["TWF", "HDF", "PWF", "OSF", "RNF"],
+        "Failure": [
+            "Tool Wear Failure",
+            "Heat Dissipation Failure",
+            "Power Failure",
+            "Overstrain Failure",
+            "Random Failure",
+        ],
+        "Cause": [
+            "Tool degrades past a critical wear threshold (~200-240 min).",
+            "Air/process temperature difference too small (< 8.6 K) at low speed.",
+            "Mechanical power (torque * speed) outside the 3,500-9,000 W operating range.",
+            "Combination of high torque and tool wear causes fatigue.",
+            "Rare failure with no identifiable sensor signature (~0.1% of records).",
+        ],
+    }
 )
 
 st.dataframe(failure_taxonomy, hide_index=True)
