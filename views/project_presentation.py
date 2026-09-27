@@ -7,7 +7,6 @@ from src.data_loader import load_data
 
 df = load_data()
 
-
 st.title("Project Presentation")
 
 st.write(
@@ -21,6 +20,7 @@ st.write(
     failure and if so, which failure mode is responsible.
     """
 )
+
 
 st.subheader("A look at the raw data")
 st.dataframe(df.head(10))
@@ -43,8 +43,7 @@ st.write(
 
 st.subheader("Failure modes")
 st.write(
-    "A machine failure (`failure_any`) is triggered by one of these five physical mechanisms "
-    "(with 9 rare events left unassigned in the original dataset):"
+    "A machine failure is triggered by one of these five physical mechanisms:"
 )
 
 failure_taxonomy = pd.DataFrame(
